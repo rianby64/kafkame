@@ -8,6 +8,10 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+var (
+	ErrorListenerTimeout = errors.New("listener timeout")
+)
+
 type Listener struct {
 	reader        Reader
 	readerBuilder func() Reader
@@ -17,6 +21,9 @@ type Listener struct {
 
 	RetryToConnect time.Duration
 	ListenTimeout  time.Duration
+
+	processDroppedMsg func(msg *kafka.Message, log Logger) error
+	// close             chan struct{}
 }
 
 func (queue *Listener) GetMsg() <-chan []byte {
@@ -62,20 +69,41 @@ func (queue *Listener) Listen(ctx context.Context) error {
 		case queue.lastMsg <- msg.Value:
 			queue.log.Println("message received")
 		case <-time.After(queue.ListenTimeout):
-			// possibly here I've a big bug... why? queue.lastMsg is not being cleared
-			queue.log.Println("cannot receive")
+			// the strategy here to apply is:
+			// - log this issue,
+			// - exit the loop in order to stop receiving new messages,
+			// - perhaps I've to send back the message to the queue, but
+			//   this looks more like an indirect (unexpected) behaviour.
+			err := queue.processDroppedMsg(&msg, queue.log)
+
+			if err != nil {
+				return err
+			}
 		}
 	}
 }
 
-func NewListener(readerBuilder func() Reader, log Logger) *Listener {
+func defaultProcessDroppedMsg(_ *kafka.Message, log Logger) error {
+	log.Println("message dropped")
+
+	return ErrorListenerTimeout
+}
+
+func NewListener(readerBuilder func() Reader, processDroppedMsg func(msg *kafka.Message, log Logger) error, log Logger) *Listener {
+	pdm := defaultProcessDroppedMsg
+	if processDroppedMsg != nil {
+		pdm = processDroppedMsg
+	}
+
 	l := &Listener{
 		readerBuilder(),
 		readerBuilder,
-		make(chan []byte, 1),
+		make(chan []byte), // I need this unbuffered because I want to lost only one message
 		log,
 		RetryToConnect,
 		ListenTimeout,
+		pdm,
+		// make(chan struct{}),
 	}
 
 	return l

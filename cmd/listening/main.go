@@ -30,6 +30,7 @@ func main() {
 				cfg.KAFKA_TOPIC,
 				cfg.KAFKA_BROKERS)
 		},
+		nil,
 		log.Default(),
 	)
 

@@ -105,3 +105,20 @@ func (reader *ReaderMock3) ReadMessage(ctx context.Context) (kafka.Message, erro
 
 	return msg, nil // (2) - send the message
 }
+
+// ReaderMock4 is being used at Test_case_one_message_one_error_reconnect_OK
+type ReaderMock4 struct {
+	msg string
+}
+
+func (reader *ReaderMock4) Close() error {
+	return nil
+}
+
+func (reader *ReaderMock4) ReadMessage(ctx context.Context) (kafka.Message, error) {
+	msg := kafka.Message{
+		Value: []byte(reader.msg),
+	}
+
+	return msg, nil // (1) - send the message
+}

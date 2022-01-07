@@ -3,6 +3,7 @@ package kafkame_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -17,7 +18,7 @@ func Test_case_one_message_no_errors_OK(t *testing.T) {
 		return &ReaderMock1{
 			msg: expectedMsg,
 		}
-	}, log)
+	}, nil, log)
 
 	assert.NotNil(t, listener)
 
@@ -44,7 +45,7 @@ func Test_case_one_message_context_cancel_no_errors_OK(t *testing.T) {
 			msg:    expectedMsg,
 			Cancel: cancelChan,
 		}
-	}, log)
+	}, nil, log)
 
 	assert.NotNil(t, listener)
 
@@ -81,7 +82,7 @@ func Test_case_one_message_one_error_reconnect_OK(t *testing.T) {
 			msg:         expectedMsg,
 			alreadyFail: alreadyFail,
 		}
-	}, log)
+	}, nil, log)
 	listener.RetryToConnect = 0
 
 	assert.NotNil(t, listener)
@@ -98,4 +99,26 @@ func Test_case_one_message_one_error_reconnect_OK(t *testing.T) {
 
 	assert.Equal(t, expectedMsg, string(msg))
 	assert.Equal(t, expectedLogs, log.Msg)
+}
+
+func Test_case_one_message_dropped_OK(t *testing.T) {
+	expectedLogs := []string{"message dropped"}
+	log := &LoggerMock{}
+	errListener := make(chan error, 1)
+	listener := kafkame.NewListener(func() kafkame.Reader {
+		return &ReaderMock4{}
+	}, nil, log)
+	listener.ListenTimeout = time.Millisecond * time.Duration(100)
+
+	assert.NotNil(t, listener)
+
+	ctx, done := context.WithCancel(context.TODO())
+	defer done()
+
+	go func() {
+		errListener <- listener.Listen(ctx)
+	}()
+
+	assert.Equal(t, <-errListener, kafkame.ErrorListenerTimeout)
+	assert.Equal(t, log.Msg, expectedLogs)
 }
