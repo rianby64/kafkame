@@ -23,7 +23,8 @@ type Listener struct {
 	ListenTimeout  time.Duration
 
 	processDroppedMsg func(msg *kafka.Message, log Logger) error
-	// close             chan struct{}
+	close             chan struct{}
+	closed            bool
 }
 
 func (queue *Listener) GetMsg() <-chan []byte {
@@ -31,6 +32,14 @@ func (queue *Listener) GetMsg() <-chan []byte {
 }
 
 func (queue *Listener) Close() error {
+	defer func() {
+		if !queue.closed {
+			queue.close <- struct{}{}
+		}
+
+		queue.closed = true
+	}()
+
 	return queue.reader.Close()
 }
 
@@ -68,6 +77,10 @@ func (queue *Listener) Listen(ctx context.Context) error {
 		select {
 		case queue.lastMsg <- msg.Value:
 			queue.log.Println("message received")
+		case <-queue.close:
+			queue.log.Println("listener closed")
+
+			return nil
 		case <-time.After(queue.ListenTimeout):
 			// the strategy here to apply is:
 			// - log this issue,
@@ -103,7 +116,8 @@ func NewListener(readerBuilder func() Reader, processDroppedMsg func(msg *kafka.
 		RetryToConnect,
 		ListenTimeout,
 		pdm,
-		// make(chan struct{}),
+		make(chan struct{}, 1),
+		false,
 	}
 
 	return l

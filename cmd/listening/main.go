@@ -12,7 +12,7 @@ import (
 )
 
 type Config struct {
-	NAME          string   `env:"NAME"`
+	NAME          string   `env:"NAME" envDefault:"name"`
 	KAFKA_USER    string   `env:"KAFKA_USER"`
 	KAFKA_PASS    string   `env:"KAFKA_PASS"`
 	KAFKA_TOPIC   string   `env:"KAFKA_TOPIC,required"`

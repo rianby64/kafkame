@@ -122,3 +122,27 @@ func Test_case_one_message_dropped_OK(t *testing.T) {
 	assert.Equal(t, <-errListener, kafkame.ErrorListenerTimeout)
 	assert.Equal(t, log.Msg, expectedLogs)
 }
+
+func Test_case_close_OK(t *testing.T) {
+	expectedLogs := []string{"listener closed"}
+	log := &LoggerMock{}
+	errListener := make(chan error, 1)
+	listener := kafkame.NewListener(func() kafkame.Reader {
+		return &ReaderMock5{}
+	}, nil, log)
+	listener.ListenTimeout = time.Millisecond * time.Duration(100)
+
+	assert.NotNil(t, listener)
+
+	ctx, done := context.WithCancel(context.TODO())
+	defer done()
+
+	go func() {
+		errListener <- listener.Listen(ctx)
+	}()
+
+	listener.Close()
+
+	assert.Equal(t, <-errListener, nil)
+	assert.Equal(t, log.Msg, expectedLogs)
+}
