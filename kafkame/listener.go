@@ -62,6 +62,7 @@ func (queue *Listener) Listen(ctx context.Context) error {
 		case queue.lastMsg <- msg.Value:
 			queue.log.Println("message received")
 		case <-time.After(queue.ListenTimeout):
+			// possibly here I've a big bug... why? queue.lastMsg is not being cleared
 			queue.log.Println("cannot receive")
 		}
 	}
