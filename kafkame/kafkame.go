@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	retryToConnect = time.Duration(10) * time.Second
-	dialerTimeout  = time.Duration(5) * time.Second
-	listenTimeout  = time.Duration(5) * time.Second
+	RetryToConnect = time.Duration(10) * time.Second
+	DialerTimeout  = time.Duration(5) * time.Second
+	ListenTimeout  = time.Duration(5) * time.Second
 )
 
 type Logger interface {
@@ -20,7 +20,7 @@ type Logger interface {
 
 func NewDialer(username, password string) *kafka.Dialer {
 	dialer := &kafka.Dialer{
-		Timeout:   dialerTimeout,
+		Timeout:   DialerTimeout,
 		DualStack: true,
 	}
 

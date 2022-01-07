@@ -14,6 +14,9 @@ type Listener struct {
 
 	lastMsg chan []byte
 	log     Logger
+
+	RetryToConnect time.Duration
+	ListenTimeout  time.Duration
 }
 
 func (queue *Listener) GetMsg() <-chan []byte {
@@ -30,18 +33,26 @@ type Reader interface {
 }
 
 func (queue *Listener) Listen(ctx context.Context) error {
+	defer func() {
+		if err := queue.reader.Close(); err != nil {
+			queue.log.Println(err)
+		}
+	}()
+
 	for {
 		msg, err := queue.reader.ReadMessage(ctx)
 		if err != nil {
+			queue.log.Println(err)
+
 			if errors.Is(err, context.Canceled) {
-				break
+				return err
 			}
 
 			if err := queue.reader.Close(); err != nil {
 				queue.log.Println(err)
 			}
 
-			time.Sleep(retryToConnect)
+			time.Sleep(queue.RetryToConnect)
 			queue.reader = queue.readerBuilder() // rebuild the connection
 
 			continue
@@ -50,17 +61,10 @@ func (queue *Listener) Listen(ctx context.Context) error {
 		select {
 		case queue.lastMsg <- msg.Value:
 			queue.log.Println("message received")
-		case <-time.After(listenTimeout):
+		case <-time.After(queue.ListenTimeout):
 			queue.log.Println("cannot receive")
 		}
-
 	}
-
-	if err := queue.reader.Close(); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func NewListener(readerBuilder func() Reader, log Logger) *Listener {
@@ -69,6 +73,8 @@ func NewListener(readerBuilder func() Reader, log Logger) *Listener {
 		readerBuilder,
 		make(chan []byte, 1),
 		log,
+		RetryToConnect,
+		ListenTimeout,
 	}
 
 	return l
