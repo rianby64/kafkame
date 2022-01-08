@@ -20,8 +20,8 @@ type Publisher struct {
 
 func (queue *Publisher) Publish(ctx context.Context, payload interface{}) error {
 	queue.writer = queue.writerBuilder()
-
 	bytes, err := json.Marshal(payload)
+
 	if err != nil {
 		return err
 	}
@@ -39,8 +39,8 @@ func (queue *Publisher) Publish(ctx context.Context, payload interface{}) error 
 
 func (queue *Publisher) PublishMany(ctx context.Context, payloads ...interface{}) error {
 	queue.writer = queue.writerBuilder()
-
 	messages := make([]kafka.Message, len(payloads))
+
 	for i, payload := range payloads {
 		bytes, err := json.Marshal(payload)
 		if err != nil {
@@ -62,11 +62,9 @@ func (queue *Publisher) PublishMany(ctx context.Context, payloads ...interface{}
 }
 
 func NewPublisher(writerBuilder func() Writer, log Logger) *Publisher {
-	p := &Publisher{
+	return &Publisher{
 		nil,
 		writerBuilder,
 		log,
 	}
-
-	return p
 }

@@ -27,7 +27,7 @@ type Listener struct {
 	closed            bool
 }
 
-func (queue *Listener) GetMsg() <-chan []byte {
+func (queue *Listener) LastMsg() <-chan []byte {
 	return queue.lastMsg
 }
 
@@ -108,7 +108,7 @@ func NewListener(readerBuilder func() Reader, processDroppedMsg func(msg *kafka.
 		pdm = processDroppedMsg
 	}
 
-	l := &Listener{
+	return &Listener{
 		readerBuilder(),
 		readerBuilder,
 		make(chan []byte), // I need this unbuffered because I want to lost only one message
@@ -119,6 +119,7 @@ func NewListener(readerBuilder func() Reader, processDroppedMsg func(msg *kafka.
 		make(chan struct{}, 1),
 		false,
 	}
-
-	return l
 }
+
+// TODO: Would be nice to have the constructor with the options pattern.
+// https://www.sohamkamani.com/golang/options-pattern/

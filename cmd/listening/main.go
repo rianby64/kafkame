@@ -40,9 +40,8 @@ func main() {
 		}
 	}()
 
-	lastMsgCh := signaler.GetMsg()
 	for {
-		lastMsg := <-lastMsgCh
+		lastMsg := <-signaler.LastMsg()
 		fmt.Println(string(lastMsg))
 	}
 }

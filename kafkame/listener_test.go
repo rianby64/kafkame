@@ -25,7 +25,7 @@ func Test_case_one_message_no_errors_OK(t *testing.T) {
 	ctx, done := context.WithCancel(context.TODO())
 	defer done()
 
-	lastMsg := listener.GetMsg()
+	lastMsg := listener.LastMsg()
 
 	go listener.Listen(ctx)
 
@@ -50,7 +50,7 @@ func Test_case_one_message_context_cancel_no_errors_OK(t *testing.T) {
 	assert.NotNil(t, listener)
 
 	ctx, done := context.WithCancel(context.TODO())
-	lastMsg := listener.GetMsg()
+	lastMsg := listener.LastMsg()
 
 	go listener.Listen(ctx)
 	go done()
@@ -90,7 +90,7 @@ func Test_case_one_message_one_error_reconnect_OK(t *testing.T) {
 	ctx, done := context.WithCancel(context.TODO())
 	defer done()
 
-	lastMsg := listener.GetMsg()
+	lastMsg := listener.LastMsg()
 
 	go listener.Listen(ctx)
 
