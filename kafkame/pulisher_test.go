@@ -3,9 +3,9 @@ package kafkame_test
 import (
 	"context"
 	"fmt"
-	"kafkame/kafkame"
 	"testing"
 
+	"github.com/rianby64/kafkame/kafkame"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 )
