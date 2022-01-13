@@ -8,7 +8,7 @@ import (
 
 	"github.com/caarlos0/env"
 	"github.com/joho/godotenv"
-	"github.com/rianby64/kafkame/kafkame"
+	"github.com/rianby64/kafkame"
 )
 
 type Config struct {

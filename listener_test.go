@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/rianby64/kafkame/kafkame"
+	"github.com/rianby64/kafkame"
 )
 
 func Test_case_one_message_no_errors_OK(t *testing.T) {

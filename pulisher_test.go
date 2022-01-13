@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/rianby64/kafkame/kafkame"
+	"github.com/rianby64/kafkame"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 )
