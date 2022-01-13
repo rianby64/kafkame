@@ -1,4 +1,4 @@
-module kafkame
+module github.com/rianby64/kafkame
 
 go 1.17
 
