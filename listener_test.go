@@ -25,9 +25,13 @@ func Test_case_one_message_no_errors_OK(t *testing.T) {
 	ctx, done := context.WithCancel(context.TODO())
 	defer done()
 
-	lastMsg := listener.LastMsg()
+	lastMsg := listener.Msg()
 
-	go listener.Listen(ctx)
+	go func() {
+		if err := listener.Listen(ctx); err != nil {
+			t.Log(err)
+		}
+	}()
 
 	msg := <-lastMsg
 
@@ -50,10 +54,17 @@ func Test_case_one_message_context_cancel_no_errors_OK(t *testing.T) {
 	assert.NotNil(t, listener)
 
 	ctx, done := context.WithCancel(context.TODO())
-	lastMsg := listener.LastMsg()
+	lastMsg := listener.Msg()
 
-	go listener.Listen(ctx)
-	go done()
+	go func() {
+		if err := listener.Listen(ctx); err != nil {
+			t.Log(err)
+		}
+	}()
+	go func() {
+		time.Sleep(time.Second)
+		done()
+	}()
 
 	msg := <-lastMsg
 	<-cancelChan
@@ -90,9 +101,13 @@ func Test_case_one_message_one_error_reconnect_OK(t *testing.T) {
 	ctx, done := context.WithCancel(context.TODO())
 	defer done()
 
-	lastMsg := listener.LastMsg()
+	lastMsg := listener.Msg()
 
-	go listener.Listen(ctx)
+	go func() {
+		if err := listener.Listen(ctx); err != nil {
+			t.Log(err)
+		}
+	}()
 
 	msg := <-lastMsg
 	<-reconnectChan
@@ -130,7 +145,7 @@ func Test_case_close_OK(t *testing.T) {
 	listener := kafkame.NewListener(func() kafkame.Reader {
 		return &ReaderMock5{}
 	}, nil, log)
-	listener.ListenTimeout = time.Millisecond * time.Duration(100)
+	listener.ListenTimeout = time.Second * time.Duration(5)
 
 	assert.NotNil(t, listener)
 
@@ -141,7 +156,10 @@ func Test_case_close_OK(t *testing.T) {
 		errListener <- listener.Listen(ctx)
 	}()
 
-	listener.Close()
+	time.Sleep(time.Second)
+	if err := listener.Shutdown(); err != nil {
+		t.Fatal(err)
+	}
 
 	assert.Equal(t, <-errListener, nil)
 	assert.Equal(t, log.Msg, expectedLogs)

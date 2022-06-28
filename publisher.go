@@ -18,26 +18,7 @@ type Publisher struct {
 	log           Logger
 }
 
-func (queue *Publisher) Publish(ctx context.Context, payload interface{}) error {
-	queue.writer = queue.writerBuilder()
-	bytes, err := json.Marshal(payload)
-
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err := queue.writer.Close(); err != nil {
-			queue.log.Println(err, "at publish")
-		}
-	}()
-
-	return queue.writer.WriteMessages(ctx, kafka.Message{
-		Value: bytes,
-	})
-}
-
-func (queue *Publisher) PublishMany(ctx context.Context, payloads ...interface{}) error {
+func (queue *Publisher) Publish(ctx context.Context, payloads ...interface{}) error {
 	queue.writer = queue.writerBuilder()
 	messages := make([]kafka.Message, len(payloads))
 
@@ -63,8 +44,8 @@ func (queue *Publisher) PublishMany(ctx context.Context, payloads ...interface{}
 
 func NewPublisher(writerBuilder func() Writer, log Logger) *Publisher {
 	return &Publisher{
-		nil,
-		writerBuilder,
-		log,
+		writer:        writerBuilder(),
+		writerBuilder: writerBuilder,
+		log:           log,
 	}
 }

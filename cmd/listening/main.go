@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/caarlos0/env"
@@ -21,7 +20,7 @@ type Config struct {
 func main() {
 	cfg := loadConfig()
 
-	signaler := kafkame.NewListener(
+	consumer := kafkame.NewListener(
 		func() kafkame.Reader {
 			return kafkame.NewReader(cfg.KAFKA_USER,
 				cfg.KAFKA_PASS,
@@ -34,19 +33,22 @@ func main() {
 	)
 
 	go func() {
-		if err := signaler.Listen(context.Background()); err != nil {
+		if err := consumer.Listen(context.Background()); err != nil {
 			log.Fatalln(err)
 		}
 	}()
 
 	for {
-		lastMsg := <-signaler.LastMsg()
-		fmt.Println(string(lastMsg))
+		msg := <-consumer.Msg()
+		log.Println(string(msg))
 	}
 }
 
 func loadConfig() Config {
-	godotenv.Load()
+	if err := godotenv.Load(); err != nil {
+		log.Fatalf("%+v\n", err)
+	}
+
 	cfg := Config{}
 	if err := env.Parse(&cfg); err != nil {
 		log.Fatalf("%+v\n", err)

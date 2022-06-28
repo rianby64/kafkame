@@ -52,7 +52,10 @@ func main() {
 }
 
 func loadConfig() Config {
-	godotenv.Load()
+	if err := godotenv.Load(); err != nil {
+		log.Fatalf("%+v\n", err)
+	}
+
 	cfg := Config{}
 	if err := env.Parse(&cfg); err != nil {
 		log.Fatalf("%+v\n", err)

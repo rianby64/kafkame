@@ -23,22 +23,21 @@ type Listener struct {
 	ListenTimeout  time.Duration
 
 	processDroppedMsg func(msg *kafka.Message, log Logger) error
-	close             chan struct{}
 	closed            bool
+	cancel            context.CancelFunc
 }
 
-func (queue *Listener) LastMsg() <-chan []byte {
+func (queue *Listener) Msg() <-chan []byte {
 	return queue.lastMsg
 }
 
-func (queue *Listener) Close() error {
-	defer func() {
-		if !queue.closed {
-			queue.close <- struct{}{}
-		}
+func (queue *Listener) Shutdown() error {
+	queue.cancel()
 
+	if !queue.closed {
 		queue.closed = true
-	}()
+		close(queue.lastMsg)
+	}
 
 	return queue.reader.Close()
 }
@@ -49,14 +48,17 @@ type Reader interface {
 }
 
 func (queue *Listener) Listen(ctx context.Context) error {
+	readCtx, cancel := context.WithCancel(ctx)
+	queue.cancel = cancel
+
 	defer func() {
-		if err := queue.reader.Close(); err != nil {
+		if err := queue.Shutdown(); err != nil {
 			queue.log.Println(err)
 		}
 	}()
 
 	for {
-		msg, err := queue.reader.ReadMessage(ctx)
+		msg, err := queue.reader.ReadMessage(readCtx)
 		if err != nil {
 			queue.log.Println(err)
 
@@ -75,21 +77,16 @@ func (queue *Listener) Listen(ctx context.Context) error {
 		}
 
 		select {
-		case queue.lastMsg <- msg.Value:
-			queue.log.Println("message received")
-		case <-queue.close:
+		case <-readCtx.Done():
 			queue.log.Println("listener closed")
 
 			return nil
-		case <-time.After(queue.ListenTimeout):
-			// the strategy here to apply is:
-			// - log this issue,
-			// - exit the loop in order to stop receiving new messages,
-			// - perhaps I've to send back the message to the queue, but
-			//   this looks more like an indirect (unexpected) behaviour.
-			err := queue.processDroppedMsg(&msg, queue.log)
 
-			if err != nil {
+		case queue.lastMsg <- msg.Value:
+			queue.log.Println("message received")
+
+		case <-time.After(queue.ListenTimeout):
+			if err := queue.processDroppedMsg(&msg, queue.log); err != nil {
 				return err
 			}
 		}
@@ -109,15 +106,13 @@ func NewListener(readerBuilder func() Reader, processDroppedMsg func(msg *kafka.
 	}
 
 	return &Listener{
-		readerBuilder(),
-		readerBuilder,
-		make(chan []byte), // I need this unbuffered because I want to lost only one message
-		log,
-		RetryToConnect,
-		ListenTimeout,
-		pdm,
-		make(chan struct{}, 1),
-		false,
+		reader:            readerBuilder(),
+		readerBuilder:     readerBuilder,
+		lastMsg:           make(chan []byte),
+		log:               log,
+		RetryToConnect:    RetryToConnect,
+		ListenTimeout:     ListenTimeout,
+		processDroppedMsg: pdm,
 	}
 }
 
