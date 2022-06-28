@@ -62,7 +62,7 @@ func Test_case_one_message_context_cancel_no_errors_OK(t *testing.T) {
 		}
 	}()
 	go func() {
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond * 10)
 		done()
 	}()
 
@@ -156,7 +156,7 @@ func Test_case_close_OK(t *testing.T) {
 		errListener <- listener.Listen(ctx)
 	}()
 
-	time.Sleep(time.Second)
+	// time.Sleep(time.Second)
 	if err := listener.Shutdown(); err != nil {
 		t.Fatal(err)
 	}

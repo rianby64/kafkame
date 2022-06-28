@@ -3,6 +3,7 @@ package kafkame
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -23,6 +24,7 @@ type Listener struct {
 	ListenTimeout  time.Duration
 
 	processDroppedMsg func(msg *kafka.Message, log Logger) error
+	lockClosed        *sync.Mutex
 	closed            bool
 	cancel            context.CancelFunc
 }
@@ -32,7 +34,12 @@ func (queue *Listener) Msg() <-chan []byte {
 }
 
 func (queue *Listener) Shutdown() error {
-	queue.cancel()
+	queue.lockClosed.Lock()
+	defer queue.lockClosed.Unlock()
+
+	if queue.cancel != nil {
+		queue.cancel()
+	}
 
 	if !queue.closed {
 		queue.closed = true
@@ -49,7 +56,9 @@ type Reader interface {
 
 func (queue *Listener) Listen(ctx context.Context) error {
 	readCtx, cancel := context.WithCancel(ctx)
+	queue.lockClosed.Lock()
 	queue.cancel = cancel
+	queue.lockClosed.Unlock()
 
 	defer func() {
 		if err := queue.Shutdown(); err != nil {
@@ -58,6 +67,12 @@ func (queue *Listener) Listen(ctx context.Context) error {
 	}()
 
 	for {
+		if queue.closed {
+			queue.log.Println("listener closed")
+
+			return nil
+		}
+
 		msg, err := queue.reader.ReadMessage(readCtx)
 		if err != nil {
 			queue.log.Println(err)
@@ -113,6 +128,7 @@ func NewListener(readerBuilder func() Reader, processDroppedMsg func(msg *kafka.
 		RetryToConnect:    RetryToConnect,
 		ListenTimeout:     ListenTimeout,
 		processDroppedMsg: pdm,
+		lockClosed:        &sync.Mutex{},
 	}
 }
 
