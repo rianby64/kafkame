@@ -14,11 +14,12 @@ func Test_case_one_message_no_errors_OK(t *testing.T) {
 	expectedMsg := "expected message"
 	expectedLogs := []string{"message received"}
 	log := &LoggerMock{}
+	opts := kafkame.NewOptions()
 	listener := kafkame.NewListener(func() kafkame.Reader {
 		return &ReaderMock1{
 			msg: expectedMsg,
 		}
-	}, nil, log)
+	}, log, opts)
 
 	assert.NotNil(t, listener)
 
@@ -44,12 +45,13 @@ func Test_case_one_message_context_cancel_no_errors_OK(t *testing.T) {
 	expectedLogs := []string{"message received", "context canceled"}
 	log := &LoggerMock{}
 	cancelChan := make(chan struct{}, 1)
+	opts := kafkame.NewOptions()
 	listener := kafkame.NewListener(func() kafkame.Reader {
 		return &ReaderMock2{
 			msg:    expectedMsg,
 			Cancel: cancelChan,
 		}
-	}, nil, log)
+	}, log, opts)
 
 	assert.NotNil(t, listener)
 
@@ -80,6 +82,7 @@ func Test_case_one_message_one_error_reconnect_OK(t *testing.T) {
 	reconnectChan := make(chan struct{}, 1)
 	alreadyFail := false
 
+	opts := kafkame.NewOptions().WithRetryToConnect(0)
 	listener := kafkame.NewListener(func() kafkame.Reader {
 		if alreadyFail {
 			reconnectChan <- struct{}{}
@@ -93,8 +96,7 @@ func Test_case_one_message_one_error_reconnect_OK(t *testing.T) {
 			msg:         expectedMsg,
 			alreadyFail: alreadyFail,
 		}
-	}, nil, log)
-	listener.RetryToConnect = 0
+	}, log, opts)
 
 	assert.NotNil(t, listener)
 
@@ -120,10 +122,10 @@ func Test_case_one_message_dropped_OK(t *testing.T) {
 	expectedLogs := []string{"message dropped"}
 	log := &LoggerMock{}
 	errListener := make(chan error, 1)
+	opts := kafkame.NewOptions().WithListenTimeout(time.Millisecond * time.Duration(100))
 	listener := kafkame.NewListener(func() kafkame.Reader {
 		return &ReaderMock4{}
-	}, nil, log)
-	listener.ListenTimeout = time.Millisecond * time.Duration(100)
+	}, log, opts)
 
 	assert.NotNil(t, listener)
 
@@ -142,10 +144,10 @@ func Test_case_close_OK(t *testing.T) {
 	expectedLogs := []string{"listener closed"}
 	log := &LoggerMock{}
 	errListener := make(chan error, 1)
+	opts := kafkame.NewOptions().WithListenTimeout(time.Second * time.Duration(5))
 	listener := kafkame.NewListener(func() kafkame.Reader {
 		return &ReaderMock5{}
-	}, nil, log)
-	listener.ListenTimeout = time.Second * time.Duration(5)
+	}, log, opts)
 
 	assert.NotNil(t, listener)
 

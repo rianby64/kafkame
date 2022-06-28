@@ -8,7 +8,7 @@ import (
 	"github.com/segmentio/kafka-go/sasl/plain"
 )
 
-const (
+var (
 	RetryToConnect = time.Duration(10) * time.Second
 	DialerTimeout  = time.Duration(5) * time.Second
 	ListenTimeout  = time.Duration(5) * time.Second
@@ -57,4 +57,8 @@ func NewWriter(username, password, topic string, brokers []string) *kafka.Writer
 		Topic:   topic,
 		Dialer:  NewDialer(username, password),
 	})
+}
+
+func NewOptions() *Options {
+	return &Options{}
 }

@@ -19,7 +19,7 @@ type Config struct {
 
 func main() {
 	cfg := loadConfig()
-
+	opts := kafkame.NewOptions()
 	consumer := kafkame.NewListener(
 		func() kafkame.Reader {
 			return kafkame.NewReader(cfg.KAFKA_USER,
@@ -28,8 +28,8 @@ func main() {
 				cfg.KAFKA_TOPIC,
 				cfg.KAFKA_BROKERS)
 		},
-		nil,
 		log.Default(),
+		opts,
 	)
 
 	go func() {
