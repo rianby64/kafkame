@@ -14,19 +14,19 @@ var (
 )
 
 type Options struct {
-	retryToConnect    *time.Duration
-	listenTimeout     *time.Duration
+	retryToConnect    time.Duration
+	listenTimeout     time.Duration
 	processDroppedMsg func(msg *kafka.Message, log Logger) error
 }
 
 func (opts *Options) WithRetryToConnect(retryToConnect time.Duration) *Options {
-	opts.retryToConnect = &retryToConnect
+	opts.retryToConnect = retryToConnect
 
 	return opts
 }
 
 func (opts *Options) WithListenTimeout(listenTimeout time.Duration) *Options {
-	opts.listenTimeout = &listenTimeout
+	opts.listenTimeout = listenTimeout
 
 	return opts
 }
@@ -85,6 +85,7 @@ type Reader interface {
 
 func (queue *Listener) Listen(ctx context.Context) error {
 	readCtx, cancel := context.WithCancel(ctx)
+
 	queue.lockClosed.Lock()
 	queue.cancel = cancel
 	queue.lockClosed.Unlock()
@@ -146,18 +147,19 @@ func defaultProcessDroppedMsg(_ *kafka.Message, log Logger) error {
 func NewListener(readerBuilder func() Reader, log Logger, opts ...*Options) *Listener {
 	finalOpts := &Options{
 		processDroppedMsg: defaultProcessDroppedMsg,
-		listenTimeout:     &ListenTimeout,
-		retryToConnect:    &RetryToConnect,
+		listenTimeout:     ListenTimeout,
+		retryToConnect:    RetryToConnect,
 	}
 
 	for _, opt := range opts {
-		if opt.listenTimeout != nil {
+		if opt.listenTimeout != 0 {
 			finalOpts.listenTimeout = opt.listenTimeout
 		}
 
-		if opt.retryToConnect != nil {
+		if opt.retryToConnect != 0 {
 			finalOpts.retryToConnect = opt.retryToConnect
 		}
+
 		if opt.processDroppedMsg != nil {
 			finalOpts.processDroppedMsg = opt.processDroppedMsg
 		}
@@ -168,8 +170,8 @@ func NewListener(readerBuilder func() Reader, log Logger, opts ...*Options) *Lis
 		readerBuilder:     readerBuilder,
 		lastMsg:           make(chan []byte),
 		log:               log,
-		retryToConnect:    *finalOpts.retryToConnect,
-		listenTimeout:     *finalOpts.listenTimeout,
+		retryToConnect:    finalOpts.retryToConnect,
+		listenTimeout:     finalOpts.listenTimeout,
 		processDroppedMsg: finalOpts.processDroppedMsg,
 		lockClosed:        &sync.Mutex{},
 	}

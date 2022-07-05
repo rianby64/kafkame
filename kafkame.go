@@ -8,7 +8,7 @@ import (
 	"github.com/segmentio/kafka-go/sasl/plain"
 )
 
-var (
+const (
 	RetryToConnect = time.Duration(10) * time.Second
 	DialerTimeout  = time.Duration(5) * time.Second
 	ListenTimeout  = time.Duration(5) * time.Second

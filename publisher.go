@@ -44,7 +44,6 @@ func (queue *Publisher) Publish(ctx context.Context, payloads ...interface{}) er
 
 func NewPublisher(writerBuilder func() Writer, log Logger) *Publisher {
 	return &Publisher{
-		writer:        writerBuilder(),
 		writerBuilder: writerBuilder,
 		log:           log,
 	}
